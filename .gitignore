@@ -1,0 +1,5 @@
+.idea/
+/DynamicLayerArchitectureForNetCore/bin/
+/DynamicLayerArchitectureForNetCore/obj/
+/DynamicLayerArchitectureForNetCore/packages/
+global.json
