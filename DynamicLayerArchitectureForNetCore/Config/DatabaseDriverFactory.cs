@@ -30,12 +30,13 @@ public static class DatabaseDriverFactory
     private static readonly Dictionary<string, string> DriverDictionary = new()
     {
         { "SqlClient", "SqlClient.SqlConnection" },
-        { "MySqlConnector", "MySqlConnector.MySqlConnection" }
+        { "MySqlConnector", "MySqlConnector.MySqlConnection" },
+        { "Oracle.ManagedDataAccess.Core", "Oracle.ManagedDataAccess.Client.OracleConnection" }
     };
 
     private static readonly ILogger Logger = NullLogger.Instance;
     private static readonly CancellationToken CancellationToken = CancellationToken.None;
-    private static readonly SourceCacheContext CacheContext = new SourceCacheContext();
+    private static readonly SourceCacheContext CacheContext = new();
 
     public static async Task InstallDriver(IConfiguration configuration, WebApplicationBuilder builder)
     {
@@ -150,7 +151,7 @@ public static class DatabaseDriverFactory
                 packageReader = downloadResult.PackageReader;
                 installedPath = packagePathResolver.GetInstalledPath(packageToInstall);
             }
-            else
+            else 
             {
                 packageReader = new PackageFolderReader(installedPath);
             }
@@ -169,16 +170,16 @@ public static class DatabaseDriverFactory
                 .Replace(ForwardSlash.ToString(), BackSlash.ToString()).ToString();
             dlls.Add(dllPath);
                 
-            if (Path.GetFileName(dllPath).StartsWith(sqlDriverName))
+            if (dllPath.Contains(sqlDriverName))
             {
                     
                 var a = Assembly.Load(await File.ReadAllBytesAsync(dllPath));
                 var connectionType = a.GetType(DriverDictionary[sqlDriverName]);
                 builder.Services.AddTransient(typeof(IDbConnection), 
                     _ => Activator.CreateInstance(connectionType ?? throw new InvalidOperationException(),
-                        configuration.GetValue<string>("connectionString")) ?? throw new InvalidOperationException());
+                        configuration.GetConnectionString("SqlConnection")) ?? throw new InvalidOperationException());
             }
-            else
+            else if (!dllPath.Contains("NETCore") && !dllPath.Contains("NETFramework"))
             {
                 Assembly.Load(await File.ReadAllBytesAsync(dllPath));
             }

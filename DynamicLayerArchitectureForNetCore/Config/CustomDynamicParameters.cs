@@ -31,7 +31,13 @@ public class CustomDynamicParameters : SqlMapper.IDynamicParameters
 
         foreach (var queryParam in queryParams)
         {
-            var param = queryParam.Split('.');
+            var queryParamTmp = queryParam;
+            if (query.ToString().StartsWith("Insert", StringComparison.InvariantCultureIgnoreCase))
+            {
+                queryParamTmp = queryParamTmp.Replace(",", "");
+            }
+            var param = queryParamTmp.Split('.');
+
             if (param.Length > 1)
             {
                 var parameterObject =
@@ -40,21 +46,28 @@ public class CustomDynamicParameters : SqlMapper.IDynamicParameters
                     .GetProperty(param.LastOrDefault() ?? string.Empty)?.GetValue(parameterObject, null);
                 if (parameterObject.GetType().GetProperty(param.LastOrDefault() ?? string.Empty)?.PropertyType == typeof(string))
                 {
-                    query.Replace(queryParam,
+                    query.Replace(queryParamTmp,
                         new StringBuilder(string.Empty).Append('\'')
                             .Append(JsonConvert.SerializeObject(paramValue)).Append('\'')
                             .Replace("\"", string.Empty).ToString());
                     continue;
                 }
-                query.Replace(queryParam, JsonConvert.SerializeObject(paramValue));
+                query.Replace(queryParamTmp, JsonConvert.SerializeObject(paramValue));
                     
                 continue;
             }
-
-            var parameter = _parameters[queryParam.Split(':').LastOrDefault() ?? throw new InvalidOperationException()];
+            var parameter = _parameters[queryParamTmp.Split(':').LastOrDefault() ?? throw new InvalidOperationException()];
             if (parameter.GetType().IsPrimitive)
             {
-                query.Replace(queryParam, JsonConvert.SerializeObject(parameter));
+                query.Replace(queryParamTmp, JsonConvert.SerializeObject(parameter));
+                continue;
+            }
+            
+            if (parameter is string)
+            {
+                query.Replace(queryParam, new StringBuilder(string.Empty).Append('\'')
+                    .Append(JsonConvert.SerializeObject(parameter)).Append('\'')
+                    .Replace("\"", string.Empty).ToString());
                 continue;
             }
 
@@ -65,7 +78,7 @@ public class CustomDynamicParameters : SqlMapper.IDynamicParameters
                 continue;
             }
 
-            ReplaceInsertData(query, parameter, queryParam);
+            ReplaceInsertData(query, parameter, queryParamTmp);
         }
             
         return query.ToString();
@@ -102,9 +115,6 @@ public class CustomDynamicParameters : SqlMapper.IDynamicParameters
             }
             insertData.Append(propertyInfo.GetValue(parameter, null));
         }
-
-        insertData.Insert(0, '(');
-        insertData.Append(')');
         query.Replace(queryParam, insertData.ToString());
     }
 }

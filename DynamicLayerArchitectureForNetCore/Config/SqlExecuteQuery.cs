@@ -52,6 +52,6 @@ public static class SqlExecuteQuery
             values.Append(']');
             result = JsonConvert.DeserializeObject<T>(values.ToString());
         });
-        return (T)result! ?? throw new InvalidOperationException();
+        return (T)result!;
     }
 }
