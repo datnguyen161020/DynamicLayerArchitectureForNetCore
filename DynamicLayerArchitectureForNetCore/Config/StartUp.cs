@@ -25,20 +25,16 @@ public static class StartUp
     
     private static void CreateComponent(WebApplicationBuilder builder, Type type)
     {
-        if (type.GetCustomAttributes(typeof(ComponentAttribute), true).Length > 0 && type.GetCustomAttributes(typeof(RepositoryAttribute), true).Length <= 0)
+        if (type.GetCustomAttributes(typeof(ComponentAttribute), true).Length > 0 
+            && type.GetCustomAttributes(typeof(RepositoryAttribute), true).Length <= 0
+            && type.GetCustomAttributes(typeof(ServiceAttribute), true).Length <= 0)
         {
             builder.Services.AddTransient(type);
             return;
         }    
         if (type.GetCustomAttributes(typeof(RepositoryAttribute), true).Length <= 0)
         {
-            var constructors = type.GetConstructors();
-
-            builder.Services.AddScoped(type,
-                provider => Activator.CreateInstance(type,
-                                constructors[0].GetParameters()
-                                    .Select(constructor => provider.GetService(constructor.ParameterType))) ??
-                            throw new InvalidOperationException());
+            builder.Services.AddTransient(type);
             return;
         }
             

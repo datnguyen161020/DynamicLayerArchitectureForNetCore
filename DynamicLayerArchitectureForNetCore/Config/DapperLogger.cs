@@ -18,6 +18,7 @@ public class DapperLogger
     {
         _dbConnection.Open();
         action.Invoke(_dbConnection);
+        _dbConnection.Close();
     }
 
     public IEnumerable<T> Query<T>(string sql, object? param = null)
